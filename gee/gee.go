@@ -1,6 +1,7 @@
 package gee
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -8,29 +9,58 @@ import (
 type HandlerFunc func(*Context)
 
 // Engine implements the interface of ServerHTTP
-type Engine struct {
-	router *router
-}
+type (
+	RouterGroup struct {
+		prefix      string        // 路由组的前缀
+		middlewares []HandlerFunc //support middleware
+		parent      *RouterGroup  // 支持嵌套
+		// Group对象，还需要有访问Router的能力
+		// 我们可以在Group中，保存一个指针，指向Engine，整个框架的所有资源都是由Engine统一协调的
+		engine *Engine
+	}
+	Engine struct {
+		router *router
+		*RouterGroup
+		groups []*RouterGroup
+	}
+)
 
 //New is the constructor of gee.Engine
 func New() *Engine {
-	return &Engine{
-		router: newRouter(),
-	}
+	engine := &Engine{router: newRouter()}
+	// 通过Engine间接地访问各种接口
+	engine.RouterGroup = &RouterGroup{engine: engine}
+	engine.groups = []*RouterGroup{engine.RouterGroup}
+	return engine
 }
 
-func (engine *Engine) addRoute(method string, pattern string, handler HandlerFunc) {
-	engine.router.addRoute(method, pattern, handler)
+// Group is defined to create a new  RouterGroup
+// remember all groups share the same Engine Instance
+func (group *RouterGroup) Group(prefix string) *RouterGroup {
+	engine := group.engine
+	newGroup := &RouterGroup{
+		prefix: group.prefix + prefix,
+		parent: group,
+		engine: engine,
+	}
+	engine.groups = append(engine.groups, newGroup)
+	return newGroup
+}
+
+func (group *RouterGroup) addRoute(method string, comp string, handler HandlerFunc) {
+	pattern := group.prefix + comp
+	log.Printf("Route %4s - %s", method, pattern)
+	group.engine.router.addRoute(method, pattern, handler)
 }
 
 // GET defines the method to add get request
-func (engine *Engine) GET(pattern string, handler HandlerFunc) {
-	engine.addRoute("GET", pattern, handler)
+func (group *RouterGroup) GET(pattern string, handler HandlerFunc) {
+	group.addRoute("GET", pattern, handler)
 }
 
 // POST defines the method to add POST request
-func (engine *Engine) POST(pattern string, handler HandlerFunc) {
-	engine.addRoute("POST", pattern, handler)
+func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
+	group.addRoute("POST", pattern, handler)
 }
 
 //	Engine实现的 ServeHTTP 方法的作用就是，解析请求的路径，查找路由映射表
