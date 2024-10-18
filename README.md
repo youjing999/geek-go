@@ -1,2 +1,2 @@
-# geek-go
-极客兔兔-7days
+# gee-cache
+分布式缓存
