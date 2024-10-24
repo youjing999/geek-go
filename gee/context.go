@@ -33,6 +33,9 @@ type Context struct {
 	// middleware
 	handlers []HandlerFunc
 	index    int
+
+	// engine pointer
+	engine *Engine
 }
 
 func (c *Context) Param(key string) string {
@@ -104,8 +107,10 @@ func (c *Context) Data(code int, data []byte) {
 	c.Writer.Write(data)
 }
 
-func (c *Context) HTML(code int, html string) {
+func (c *Context) HTML(code int, name string, data any) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
-	c.Writer.Write([]byte(html))
+	if err := c.engine.htmlTemplate.ExecuteTemplate(c.Writer, name, data); err != nil {
+		c.Fail(500, err.Error())
+	}
 }
