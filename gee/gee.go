@@ -41,6 +41,13 @@ func New() *Engine {
 	return engine
 }
 
+// Default 默认使用 Logger() 和 Recovery 中间件
+func Default() *Engine {
+	engine := New()
+	engine.Use(Logger(), Recovery())
+	return engine
+}
+
 // Group is defined to create a new  RouterGroup
 // remember all groups share the same Engine Instance
 func (group *RouterGroup) Group(prefix string) *RouterGroup {
@@ -72,6 +79,7 @@ func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
 
 // Use is defined to add middleware to the group
 func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
+	log.Println("执行Use，添加中间件：{}", middlewares)
 	group.middlewares = append(group.middlewares, middlewares...)
 }
 
