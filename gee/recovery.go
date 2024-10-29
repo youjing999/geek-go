@@ -32,7 +32,7 @@ func trace(message string) string {
 	*/
 	n := runtime.Callers(3, pcs[:])
 	var str strings.Builder
-	str.WriteString(message + "\\nTraceback:")
+	str.WriteString(message + "\nTraceback:")
 	for _, pc := range pcs[:n] {
 		// 获取对应的函数
 		fn := runtime.FuncForPC(pc)
